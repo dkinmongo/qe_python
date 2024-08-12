@@ -19,7 +19,7 @@ This project demonstrates the implementation of Queryable Encryption using Pytho
 Initial Setup: To set up the environment and install the necessary dependencies, run the following commands:
 ```bash
 conda create -n qetest pip python=3.9
-conda activate test
+conda activate qetest
 pip install -r requirements.txt
 ```
 
