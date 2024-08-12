@@ -5,16 +5,16 @@ This project demonstrates the implementation of Queryable Encryption using Pytho
 ## Table of Contents
 - [Pre-requisites](#pre-requisites)
 - [Running the Application](#running-the-application)
-- [Data Encryption Key (DEK) Generation](#data-encryption-key-dek-generation)
+- [Data Encryption Key (DEK) Generation](#generate-data-encryption-keys-deks)
 - [CRUD Operations](#crud-operations)
-  - [Insert](#insert)
-  - [Find](#find)
-  - [Update](#update)
-  - [Delete](#delete)
+  - [Insert](#insert-patient-data)
+  - [Find](#find-patient-data)
+  - [Update](#update-patient-data)
+  - [Delete](#delete-patient-data)
 - [Key Rotation](#key-rotation)
-- [Other Utilities](#other-utilities)
-  - [Migration Sample](#migration-sample)
-
+- [Additional Information](#additional-information)
+  - [Plaintext Data Migration Samples](#plaintext-data-migration-samples)
+  
 ## Pre-requisites
 
 Before running the application, ensure you have the following information stored in `your_credentials.py`:
