@@ -1,2 +1,4 @@
 pymongo
 pymongocrypt
+faker
+flask
