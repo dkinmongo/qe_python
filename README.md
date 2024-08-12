@@ -21,6 +21,12 @@ Before running the application, ensure you have the following information stored
 
 - **AWS KMS CMK (Customer Master Key) information**: Required for encryption and decryption operations.
 - **SHARED_LIB_PATH**: Path to the encrypted schema map library. Example: `/usr/lib/mongo_crypt_v1.dylib`.
+- **Python Environment Initial Setup**: To set up the environment and install the necessary dependencies, run the following commands:
+```bash
+conda create -n qetest pip python=3.9
+conda activate test
+pip install -r requirements.txt
+```
 
 ## Running the Application
 
