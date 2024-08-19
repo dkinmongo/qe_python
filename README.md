@@ -4,8 +4,8 @@ This project demonstrates the implementation of Queryable Encryption using Pytho
 
 ## Table of Contents
 - [Pre-requisites](#pre-requisites)
-- [Running the Application](#running-the-application)
 - [Data Encryption Key (DEK) Generation](#generate-data-encryption-keys-deks)
+- [Running the Application](#running-the-application)
 - [CRUD Operations](#crud-operations)
   - [Insert](#insert-patient-data)
   - [Find](#find-patient-data)
@@ -29,19 +29,19 @@ Before running the application, ensure you have the following information stored
 - **SHARED_LIB_PATH**: Path to the encrypted schema map library. Example: `/usr/lib/mongo_crypt_v1.dylib`.
 
 
+## Generate Data Encryption Keys (DEKs)
+Execute the following script to generate Data Encryption Keys (DEKs):
+
+```bash
+python make_data_key.py
+```
+
 ## Running the Application
 
 The application is built with Flask. You can start the server by running:
 
 ```bash
 python app.py
-```
-
-## Generate Data Encryption Keys (DEKs)
-Execute the following script to generate Data Encryption Keys (DEKs):
-
-```bash
-python make_data_key.py
 ```
 
 ## CRUD Operations
