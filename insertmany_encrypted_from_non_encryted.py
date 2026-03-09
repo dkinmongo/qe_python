@@ -11,7 +11,6 @@ credentials = get_credentials()
 key_vault_db = "qe"
 key_vault_coll = "__keyVault"
 key_vault_namespace = "qe.__keyVault"
-
 provider = "aws"
 kms_providers = {
     provider: {
@@ -31,10 +30,12 @@ data_key_id_1 = keyVaultClient.find_one({"keyAltNames": "dataKey1"})["_id"]
 data_key_id_2 = keyVaultClient.find_one({"keyAltNames": "dataKey2"})["_id"]
 data_key_id_3 = keyVaultClient.find_one({"keyAltNames": "dataKey3"})["_id"]
 data_key_id_4 = keyVaultClient.find_one({"keyAltNames": "dataKey4"})["_id"]
+data_key_id_5 = keyVaultClient.find_one({"keyAltNames": "dataKey5"})["_id"]
 
 # Define the encrypted fields map
 encrypted_db_name = "test"
 encrypted_coll_name = "patients"
+
 encrypted_fields_map = {
     f"{encrypted_db_name}.{encrypted_coll_name}": {
         "fields": [
@@ -42,7 +43,14 @@ encrypted_fields_map = {
                 "keyId": data_key_id_1,
                 "path": "patientId",
                 "bsonType": "int",
-                "queries": {"queryType": "equality"},
+                "queries": {
+                    "queryType": "range",
+                    "min": 10000000,
+                    "max": 99999999,
+                    "sparsity": 2,
+                    "trimFactor": 6,
+                    "contention": 8,
+                },
             },
             {
                 "keyId": data_key_id_2,
@@ -59,6 +67,20 @@ encrypted_fields_map = {
                 "keyId": data_key_id_4,
                 "path": "patientRecord.billing",
                 "bsonType": "object",
+            },
+            {
+                "keyId": data_key_id_5,
+                "path": "bodyTemperature",
+                "bsonType": "double",
+                "queries": {
+                    "queryType": "range",
+                    "min": 35.0,
+                    "max": 42.0,
+                    "precision": 1,
+                    "sparsity": 2,
+                    "trimFactor": 6,
+                    "contention": 8,
+                },
             },
         ],
     },
@@ -78,21 +100,24 @@ encrypted_coll = secure_client[encrypted_db_name][encrypted_coll_name]
 
 # Read from non-encrypted collection
 non_encrypted_coll = unencrypted_client["test"]["patients_non_encrypted"]
-patients_to_insert = []
+patients_to_insert = list(non_encrypted_coll.find())
 
-# Fetch data from the non-encrypted collection
-for patient in non_encrypted_coll.find():
-    # Assuming the structure of the data matches the encrypted fields
-    patients_to_insert.append(patient)
-
-# Insert the patients into the encrypted collection
-if patients_to_insert:
-    result = encrypted_coll.insert_many(patients_to_insert)
-    print(f"Inserted {len(result.inserted_ids)} documents into the encrypted collection.")
-else:
+if not patients_to_insert:
     print("No patients found to insert.")
+else:
+    # Insert in batches (QE adds __safeContent__ metadata per document,
+    # range fields generate multiple entries → BSON size increases significantly)
+    BATCH_SIZE = 1000
+    total_inserted = 0
+
+    for i in range(0, len(patients_to_insert), BATCH_SIZE):
+        batch = patients_to_insert[i:i + BATCH_SIZE]
+        result = encrypted_coll.insert_many(batch)
+        total_inserted += len(result.inserted_ids)
+        print(f"Batch {i // BATCH_SIZE + 1}: Inserted {len(result.inserted_ids)} documents (total: {total_inserted})")
+
+    print(f"\nCompleted: {total_inserted} documents inserted into the encrypted collection.")
 
 # Cleanup
 unencrypted_client.close()
 secure_client.close()
-
