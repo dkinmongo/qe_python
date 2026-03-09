@@ -12,6 +12,7 @@ def create_random_patient():
         "firstName": fake.first_name(),
         "lastName": fake.last_name(),
         "patientId": random.randint(10000000, 99999999),
+        "bodyTemperature": round(random.uniform(35.5, 40.5), 1),  # [NEW] 체온 (35.5~40.5°C, 소수점 1자리)
         "address": fake.address(),
         "patientRecord": {
             "ssn": fake.ssn(),
@@ -42,9 +43,7 @@ non_encrypted_coll = unencrypted_client[non_encrypted_db_name][non_encrypted_col
 # Insert 10,000 documents into the collection
 patients = [create_random_patient() for _ in range(10000)]
 non_encrypted_coll.insert_many(patients)
-
 print("Inserted 10,000 patient records into the non-encrypted collection.")
 
 # Clean up
 unencrypted_client.close()
-
