@@ -1,14 +1,12 @@
 from pymongo import MongoClient, ASCENDING
 from pymongo.encryption_options import AutoEncryptionOpts
-from pymongo.encryption import ClientEncryption, MongoCryptOptions
+from pymongo.encryption import ClientEncryption
 from bson.codec_options import CodecOptions
-from bson.binary import STANDARD, UUID
+from bson.binary import STANDARD
 from your_credentials import get_credentials
 
-# Retrieve credentials
 credentials = get_credentials()
 
-# KMS providers configuration
 provider = "aws"
 kms_providers = {
     provider: {
@@ -17,20 +15,17 @@ kms_providers = {
     }
 }
 
-# Master key configuration
 master_key = {
     "region": credentials["AWS_KEY_REGION"],
     "key": credentials["AWS_KEY_ARN"],
 }
 
-# Connection string and key vault namespace
 connection_string = credentials["MONGODB_URI"]
 key_vault_coll = "__keyVault"
 key_vault_db = "qe"
 key_vault_namespace = f"{key_vault_db}.{key_vault_coll}"
-key_vault_client = MongoClient(connection_string)
 
-# Create index on key vault collection
+key_vault_client = MongoClient(connection_string)
 key_vault_client.drop_database(key_vault_db)
 key_vault_client[key_vault_db][key_vault_coll].create_index(
     [("keyAltNames", ASCENDING)],
@@ -38,7 +33,6 @@ key_vault_client[key_vault_db][key_vault_coll].create_index(
     partialFilterExpression={"keyAltNames": {"$exists": True}},
 )
 
-# Initialize ClientEncryption
 client = MongoClient(connection_string)
 client_encryption = ClientEncryption(
     kms_providers,
@@ -47,31 +41,36 @@ client_encryption = ClientEncryption(
     CodecOptions(uuid_representation=STANDARD),
 )
 
-# Create data encryption keys and log messages
+# DEK 생성 (5개)
 data_key_id_1 = client_encryption.create_data_key(
     provider, master_key=master_key, key_alt_names=["dataKey1"]
 )
-print(f"Key with ID {data_key_id_1} and keyAltName 'dataKey1' has been created.")
+print(f"dataKey1 created: {data_key_id_1}")
 
 data_key_id_2 = client_encryption.create_data_key(
     provider, master_key=master_key, key_alt_names=["dataKey2"]
 )
-print(f"Key with ID {data_key_id_2} and keyAltName 'dataKey2' has been created.")
+print(f"dataKey2 created: {data_key_id_2}")
 
 data_key_id_3 = client_encryption.create_data_key(
     provider, master_key=master_key, key_alt_names=["dataKey3"]
 )
-print(f"Key with ID {data_key_id_3} and keyAltName 'dataKey3' has been created.")
+print(f"dataKey3 created: {data_key_id_3}")
 
 data_key_id_4 = client_encryption.create_data_key(
     provider, master_key=master_key, key_alt_names=["dataKey4"]
 )
-print(f"Key with ID {data_key_id_4} and keyAltName 'dataKey4' has been created.")
+print(f"dataKey4 created: {data_key_id_4}")
 
+data_key_id_5 = client_encryption.create_data_key(
+    provider, master_key=master_key, key_alt_names=["dataKey5"]
+)
+print(f"dataKey5 created: {data_key_id_5}")
 
-# start-create-enc-collection
+# Encrypted Collection 생성
 encrypted_db_name = "test"
 encrypted_coll_name = "patients"
+
 encrypted_fields_map = {
     f"{encrypted_db_name}.{encrypted_coll_name}": {
         "fields": [
@@ -79,7 +78,14 @@ encrypted_fields_map = {
                 "keyId": data_key_id_1,
                 "path": "patientId",
                 "bsonType": "int",
-                "queries": {"queryType": "equality"},
+                "queries": {
+                    "queryType": "range",
+                    "min": 10000000,
+                    "max": 99999999,
+                    "sparsity": 2,
+                    "trimFactor": 6,
+                    "contention": 8,
+                },
             },
             {
                 "keyId": data_key_id_2,
@@ -97,12 +103,26 @@ encrypted_fields_map = {
                 "path": "patientRecord.billing",
                 "bsonType": "object",
             },
+            {
+                # precision=1 → 36.58은 쿼리 시 36.5로 매칭 (저장은 36.58 그대로)
+                "keyId": data_key_id_5,
+                "path": "bodyTemperature",
+                "bsonType": "double",
+                "queries": {
+                    "queryType": "range",
+                    "min": 35.0,
+                    "max": 42.0,
+                    "precision": 1,
+                    "sparsity": 2,
+                    "trimFactor": 6,
+                    "contention": 8,
+                },
+            },
         ],
     },
 }
 
 key_vault_namespace = "qe.__keyVault"
-
 auto_encryption = AutoEncryptionOpts(
     kms_providers,
     key_vault_namespace,
@@ -111,11 +131,7 @@ auto_encryption = AutoEncryptionOpts(
 )
 
 secure_client = MongoClient(connection_string, auto_encryption_opts=auto_encryption)
-# Drop the encrypted collection in case you created this collection
-# in a previous run of this application.
 secure_client.drop_database(encrypted_db_name)
 encrypted_db = secure_client[encrypted_db_name]
 encrypted_db.create_collection(encrypted_coll_name)
-print("Created encrypted collection!")
-# end-create-enc-collection
-
+print("Created encrypted collection with range query support!")
